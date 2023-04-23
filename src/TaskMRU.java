@@ -29,14 +29,6 @@ public class TaskMRU implements Runnable {
                 }
             }
         }
-//        System.out.println(faults + " page faults");
-//        System.out.print("REPLACED: {");
-//        for (int reference: replacements){
-//            System.out.print(reference);
-//            System.out.print(",");
-//        }
-//        System.out.println("}");
-
         pageFaults[maxMemoryFrames] = faults;
     }
 }

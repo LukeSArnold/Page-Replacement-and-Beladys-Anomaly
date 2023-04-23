@@ -20,25 +20,20 @@ public class TaskFIFO implements Runnable {
     public void run(){
         List<Integer> frames = new ArrayList<>();
         int faults = 0;
-        List<Integer> replacements = new ArrayList<Integer>();
         LinkedList<Integer> accessOrder = new LinkedList<Integer>();
 
         for (int element : sequence) {
             if (!frames.contains(element)) {
                 faults++;
-                //System.out.println("DIDN'T CONTAIN "+ element);
                 if (frames.size() < maxMemoryFrames) {
                     frames.add(element);
                     accessOrder.add(element);
                 } else {
-                    replacements.add(accessOrder.getFirst());
                     frames.set(frames.indexOf(accessOrder.pop()),element);
                     accessOrder.add(element);
                 }
             }
         }
-
-        System.out.println("REPLACED: "+replacements);
         pageFaults[maxMemoryFrames] = faults;
     }
 }
