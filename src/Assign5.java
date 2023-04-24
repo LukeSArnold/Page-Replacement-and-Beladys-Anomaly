@@ -1,19 +1,11 @@
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Random;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class Assign5 {
-
     static private final int MAX_PAGE_REFERENCE = 250;
-    static private ArrayList<int[]> fifoFaults = new ArrayList<int[]>();
-    static private ArrayList<int[]> lruFaults = new ArrayList<int[]>();
-    static private ArrayList<int[]> mruFaults = new ArrayList<int[]>();
-
     public static void main(String[] args) throws InterruptedException {
 
         Date currentDate = new Date();
@@ -36,7 +28,6 @@ public class Assign5 {
 
             runSimulation(executor, fifoFaults, lruFaults, mruFaults);
         }
-
         executor.shutdown();
         while (executor.awaitTermination(10, TimeUnit.SECONDS)) {
             Date newDate = new Date();
@@ -44,6 +35,7 @@ public class Assign5 {
             System.out.println("SIMULATION TOOK "+finalTime+" ms TO COMPLETE");
 
             summarizeResults(total_fifoFaults, total_lruFaults, total_mruFaults);
+            summarizeBeladyAnamoly(total_fifoFaults, total_lruFaults, total_mruFaults);
             break;
         }
     }
@@ -98,6 +90,84 @@ public class Assign5 {
         System.out.println("LRU min PF: "+lruLowest);
         System.out.println("MRU min PF: "+mruLowest);
     }
+
+    public static void summarizeBeladyAnamoly(int[][] fifoFaults, int[][] lruFaults, int[][] mruFaults){
+        int previousFIFO = 0;
+        int fifoAnamolys = 0;
+        int maxDistanceFifo = 0;
+
+        // Summarizing Results for FIFO Simulations
+        System.out.println("\nBelady's Anomaly Report for FIFO");
+        for (int sim = 0; sim < 1000; sim++){
+            for (int frame = 0; frame < 100; frame++){
+                int currentFIFO = fifoFaults[sim][frame];
+                if (previousFIFO == 0){
+                    previousFIFO = currentFIFO;
+                } else {
+                    if (currentFIFO > previousFIFO){
+                        int distance = currentFIFO - previousFIFO;
+                        if (distance > maxDistanceFifo){
+                            maxDistanceFifo = distance;
+                        }
+                        fifoAnamolys++;
+                        System.out.println("\t\tdetected - Previous "+previousFIFO+"\t : Current "+currentFIFO+" ("+distance+")");
+                    }
+                }
+                previousFIFO = currentFIFO;
+            }
+        }
+        System.out.println("\tAnomaly detected "+fifoAnamolys+" times with a max difference of "+maxDistanceFifo);
+
+        // Summarizing Results for LRU Simulations
+        int previousLRU = 0;
+        int LRUAnomalys = 0;
+        int maxDistanceLRU = 0;
+        System.out.println("\nBelady's Anomaly Report for LRU");
+        for (int sim = 0; sim < 1000; sim++){
+            for (int frame = 0; frame < 100; frame++){
+                int currentLRU = lruFaults[sim][frame];
+                if (previousLRU == 0){
+                    previousLRU = currentLRU;
+                } else {
+                    if (currentLRU > previousLRU){
+                        int distance = currentLRU - previousLRU;
+                        if (distance > maxDistanceLRU){
+                            maxDistanceLRU = distance;
+                        }
+                        LRUAnomalys++;
+                        System.out.println("\t\tdetected - Previous "+previousLRU+"\t : Current "+currentLRU+" ("+distance+")");
+                    }
+                }
+                previousLRU = currentLRU;
+            }
+        }
+        System.out.println("\tAnomaly detected "+LRUAnomalys+" times with a max difference of "+maxDistanceLRU);
+
+        // Summarizing Results for MRU Simulations
+        int previousMRU = 0;
+        int MRUAnomalys = 0;
+        int maxDistanceMRU = 0;
+        System.out.println("\nBelady's Anomaly Report for MRU");
+        for (int sim = 0; sim < 1000; sim++){
+            for (int frame = 0; frame < 100; frame++){
+                int currentMRU = mruFaults[sim][frame];
+                if (previousMRU == 0){
+                    previousMRU = currentMRU;
+                } else {
+                    if (currentMRU > previousMRU){
+                        int distance = currentMRU - previousMRU;
+                        if (distance > maxDistanceMRU){
+                            maxDistanceMRU = distance;
+                        }
+                        MRUAnomalys++;
+                        System.out.println("\t\tdetected - Previous "+previousMRU+"\t : Current "+currentMRU+" ("+distance+")");
+                    }
+                }
+                previousMRU = currentMRU;
+            }
+        }
+        System.out.println("\tAnomaly detected "+MRUAnomalys+" times with a max difference of "+maxDistanceMRU);
+    }
     private static void runSimulation(ExecutorService executor, int[] fifoFaults, int[] lruFaults, int[] mruFaults) {
         int[] sequence = generateSequence(1000, MAX_PAGE_REFERENCE);
 
@@ -121,68 +191,4 @@ public class Assign5 {
         }
         return sequence;
     }
-    public static void testFIFO() {
-        int[] sequence1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-        int[] sequence2 = {1, 2, 1, 3, 2, 1, 2, 3, 4};
-        int[] pageFaults = new int[4];  // 4 because maxMemoryFrames is 3
-
-        // Replacement should be: 1, 2, 3, 4, 5, 6, 7, 8
-        // Page Faults should be 9
-        (new TaskFIFO(sequence1, 1, MAX_PAGE_REFERENCE, pageFaults)).run();
-        System.out.printf("Page Faults: %d\n", pageFaults[1]);
-
-        // Replacement should be: 2, 1, 3, 1, 2.
-        // Page Faults should be 7
-        (new TaskFIFO(sequence2, 2, MAX_PAGE_REFERENCE, pageFaults)).run();
-        System.out.printf("Page Faults: %d\n", pageFaults[2]);
-
-        // Replacement should be: 1
-        // Page Faults should be 4
-        (new TaskFIFO(sequence2, 3, MAX_PAGE_REFERENCE, pageFaults)).run();
-        System.out.printf("Page Faults: %d\n", pageFaults[3]);
-    }
-
-    public static void testLRU() {
-        int[] sequence1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-        int[] sequence2 = {1, 2, 1, 3, 2, 1, 2, 3, 4};
-        int[] pageFaults = new int[4];  // 4 because maxMemoryFrames is 3
-
-        // Replacement should be: 1, 2, 3, 4, 5, 6, 7, 8
-        // Page Faults should be 9
-        (new TaskLRU(sequence1, 1, MAX_PAGE_REFERENCE, pageFaults)).run();
-        System.out.printf("Page Faults: %d\n", pageFaults[1]);
-
-        // Replacement should be: 2, 1, 3, 1, 2.
-        // Page Faults should be 7
-        (new TaskLRU(sequence2, 2, MAX_PAGE_REFERENCE, pageFaults)).run();
-        System.out.printf("Page Faults: %d\n", pageFaults[2]);
-
-        // Replacement should be: 1
-        // Page Faults should be 4
-        (new TaskLRU(sequence2, 3, MAX_PAGE_REFERENCE, pageFaults)).run();
-        System.out.printf("Page Faults: %d\n", pageFaults[3]);
-    }
-
-    public static void testMRU() {
-        int[] sequence1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-        int[] sequence2 = {1, 2, 1, 3, 2, 1, 2, 3, 4};
-        int[] pageFaults = new int[4];  // 4 because maxMemoryFrames is 3
-
-        // Replacement should be: 1, 2, 3, 4, 5, 6, 7, 8
-        // Page Faults should be 9
-        (new TaskMRU(sequence1, 1, MAX_PAGE_REFERENCE, pageFaults)).run();
-        System.out.printf("Page Faults: %d\n", pageFaults[1]);
-
-        // Replacement should be: 1, 2, 1, 3
-        // Page Faults should be 6
-        (new TaskMRU(sequence2, 2, MAX_PAGE_REFERENCE, pageFaults)).run();
-        System.out.printf("Page Faults: %d\n", pageFaults[2]);
-
-        // Replacement should be: 3
-        // Page Faults should be 4
-        (new TaskMRU(sequence2, 3, MAX_PAGE_REFERENCE, pageFaults)).run();
-        System.out.printf("Page Faults: %d\n", pageFaults[3]);
-    }
-
-
 }
